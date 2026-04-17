@@ -2,65 +2,105 @@ import { STATE } from './state.js';
 import { fetchSheetData } from './api.js';
 import { normalizeText, inferCuadrillaFromPath, extractQuadrillaNumber } from './utils.js';
 
-export async function loadAllData() {
-  STATE.sheetData = await fetchSheetData();
-  await loadGeoJSON();
+function normalizarBoolean(value) {
+  return (
+    value === true ||
+    value === 1 ||
+    value === '1' ||
+    String(value || '').trim().toLowerCase() === 'true' ||
+    String(value || '').trim().toLowerCase() === 'si' ||
+    String(value || '').trim().toLowerCase() === 'sí'
+  );
+}
+
+function claveRegistro(microrruta, cuadrilla) {
+  return `${normalizeText(microrruta)}|${normalizeText(cuadrilla)}`;
+}
+
+function construirIndiceSheetData(rows) {
+  const index = new Map();
+
+  (rows || []).forEach((row) => {
+    const microrruta = row.microrruta || row.Microruta || row.MICRORRUTA || '';
+    const cuadrilla = row.cuadrilla || row.Cuadrilla || row.CUADRILLA || '';
+    if (!microrruta || !cuadrilla) return;
+
+    index.set(claveRegistro(microrruta, cuadrilla), {
+      cuadrilla: row.cuadrilla || '',
+      microrruta: row.microrruta || '',
+      lote: row.lote || row.No_Lote || '',
+      estado: row.estado || 'Pendiente',
+      fecha_inicio: row.fecha_inicio || '',
+      fecha_fin: row.fecha_fin || '',
+      tipo_novedad_ejecucion: row.tipo_novedad_ejecucion || '',
+      novedad_activa: normalizarBoolean(row.novedad_activa),
+      usuario: row.usuario || '',
+      rol: row.rol || ''
+    });
+  });
+
+  return index;
+}
+
+function findSheetRow(index, microrruta, cuadrilla, cuadrillaNumber) {
+  const direct = index.get(claveRegistro(microrruta, cuadrilla));
+  if (direct) return direct;
+
+  for (const row of index.values()) {
+    if (normalizeText(row.microrruta) !== normalizeText(microrruta)) continue;
+    const rowNumber = extractQuadrillaNumber(row.cuadrilla || '');
+    if (rowNumber && cuadrillaNumber && rowNumber === cuadrillaNumber) return row;
+  }
+
+  return null;
 }
 
 async function loadGeoJSON() {
   const collections = await Promise.all(
     STATE.geojsonFiles.map(async (file) => {
       const res = await fetch(file);
+      if (!res.ok) throw new Error(`No se pudo cargar ${file} (${res.status})`);
       const geojson = await res.json();
       return { geojson, file };
     })
   );
 
-  STATE.microrrutasData = collections.flatMap(({ geojson, file }) => {
-    const inferredCuadrilla = inferCuadrillaFromPath(file);
-    const cuadrillaNumber = extractQuadrillaNumber(inferredCuadrilla);
+  const index = construirIndiceSheetData(STATE.sheetData);
 
-    return (geojson.features || []).map((feature, index) => {
-      const microrruta = feature.properties?.Microruta || feature.properties?.microrruta || '';
-      const lote = feature.properties?.No_Lote || feature.properties?.Lote || feature.properties?.lote || '';
-      const sheet = findSheetRow(STATE.sheetData, microrruta, inferredCuadrilla, cuadrillaNumber) || {};
-      const cuadrilla = sheet.cuadrilla || inferredCuadrilla;
+  STATE.microrrutasData = collections.flatMap(({ geojson, file }) => {
+    const cuadrilla = inferCuadrillaFromPath(file);
+    const cuadrillaNumber = extractQuadrillaNumber(cuadrilla);
+
+    return (geojson.features || []).map((feature, indexFeature) => {
+      const props = feature.properties || {};
+      const microrruta = props.Microruta || props.microrruta || '';
+      const lote = props.No_Lote || props.Lote || props.lote || '';
+      const row = findSheetRow(index, microrruta, cuadrilla, cuadrillaNumber) || null;
 
       return {
         ...feature,
-        id: feature.id ?? `${cuadrilla}-${microrruta}-${index}`,
+        id: feature.id ?? `${cuadrilla}-${microrruta}-${indexFeature}`,
         properties: {
-          ...feature.properties,
+          ...props,
           microrruta,
           lote,
           cuadrilla,
-          cuadrilla_display: cuadrilla,
-          estado: sheet.estado || 'Pendiente',
-          fecha_inicio: sheet.fecha_inicio || '',
-          fecha_fin: sheet.fecha_fin || '',
-          novedad: Boolean(sheet.novedad),
-          tipo_novedad: sheet.tipo_novedad || ''
+          cuadrilla_display: cuadrilla.replace('_', ' '),
+          estado: row?.estado || 'Pendiente',
+          fecha_inicio: row?.fecha_inicio || '',
+          fecha_fin: row?.fecha_fin || '',
+          tipo_novedad_ejecucion: row?.tipo_novedad_ejecucion || '',
+          novedad_activa: row?.novedad_activa || false,
+          usuario: row?.usuario || '',
+          rol: row?.rol || ''
         }
       };
     });
   });
 }
 
-function findSheetRow(rows, microrruta, cuadrilla, cuadrillaNumber) {
-  const micKey = normalizeText(microrruta);
-  const cuaKey = normalizeText(cuadrilla);
-
-  return rows.find((row) => {
-    if (normalizeText(row.microrruta) !== micKey) return false;
-
-    const rowCuadrilla = row.cuadrilla || '';
-    if (!rowCuadrilla) return true;
-
-    const rowCuaKey = normalizeText(rowCuadrilla);
-    if (rowCuaKey === cuaKey) return true;
-
-    const rowNumber = extractQuadrillaNumber(rowCuadrilla);
-    return rowNumber && cuadrillaNumber && rowNumber === cuadrillaNumber;
-  });
+export async function loadAllData() {
+  STATE.sheetData = await fetchSheetData();
+  await loadGeoJSON();
 }
 
