@@ -22,8 +22,9 @@ export function fetchSheetData() {
   });
 }
 
-export function buildEditorUrl({ microrruta, cuadrilla, lote }) {
-  const url = new URL(CONFIG.EDITOR_URL);
+export function buildAppUrl({ page, microrruta, cuadrilla, lote }) {
+  const url = new URL(CONFIG.WEBAPP_URL);
+  url.searchParams.set('page', page || 'gestion');
   url.searchParams.set('microrruta', microrruta || '');
   url.searchParams.set('cuadrilla', cuadrilla || '');
   url.searchParams.set('lote', lote || '');
