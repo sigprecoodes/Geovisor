@@ -1,15 +1,18 @@
 export const STATE = {
   map: null,
   geojsonLayer: null,
-  sheetData: [],
-  microrrutasData: [],
+  baseLayers: null,
   geojsonFiles: [],
-  selectedFeatureId: null,
+  microrrutasData: [],
+  sheetData: [],
   activeFilters: new Set([
     'Pendiente',
     'En proceso',
     'Ejecutado',
     'Ejecutado con novedad',
-    'No ejecutado con novedad'
-  ])
+    'No ejecutado con novedad',
+    'Reportadas con novedad'
+  ]),
+  selectedFeatureId: null,
+  searchTerm: ''
 };
