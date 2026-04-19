@@ -90,7 +90,7 @@ function esNovedadActiva(value) {
    Context fetch
 ========================= */
 
-function buildContextUrl({ microrruta, cuadrilla }) {
+function buildContextUrl({ microrruta, cuadrilla, lote }) {
   const callback = `ctx_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
   const url = new URL(CONFIG.WEBAPP_URL);
 
@@ -99,18 +99,19 @@ function buildContextUrl({ microrruta, cuadrilla }) {
   url.searchParams.set('action', 'contextoReporte');
   url.searchParams.set('microrruta', microrruta || '');
   url.searchParams.set('cuadrilla', cuadrilla || '');
+  url.searchParams.set('lote', lote || '');
 
   return { url: url.toString(), callback };
 }
 
-function fetchMicrorrutaContext({ microrruta, cuadrilla }) {
+function fetchMicrorrutaContext({ microrruta, cuadrilla, lote }) {
   return new Promise((resolve, reject) => {
     if (!microrruta || !cuadrilla) {
       resolve(null);
       return;
     }
 
-    const { url, callback } = buildContextUrl({ microrruta, cuadrilla });
+    const { url, callback } = buildContextUrl({ microrruta, cuadrilla, lote });
     const script = document.createElement('script');
 
     window[callback] = (res) => {
@@ -312,7 +313,7 @@ export function renderInfoPanel(feature) {
     abrirReporteNovedad({ microrruta, cuadrilla, lote });
   });
 
-  fetchMicrorrutaContext({ microrruta, cuadrilla })
+  fetchMicrorrutaContext({ microrruta, cuadrilla, lote })
     .then((detalle) => {
       if (content.dataset.requestKey !== requestKey) return;
 
@@ -542,5 +543,4 @@ export function setupUI(renderApp) {
     });
   });
 }
-
 
