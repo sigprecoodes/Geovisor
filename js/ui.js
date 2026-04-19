@@ -1,5 +1,5 @@
-import { STATE } from './state.js';
-import { abrirGestion, abrirReporteNovedad } from './actions.js';
+import { STATE } from '../state.js';
+import { abrirGestion, abrirReporteNovedad } from '../actions.js';
 import { CONFIG } from '../config.js';
 import {
   matchesStateFilter,
