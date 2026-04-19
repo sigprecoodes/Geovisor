@@ -1,8 +1,8 @@
-import { CONFIG } from './config.js';
-import { initMap, renderMap } from '../map.js';
+import { CONFIG } from '../config.js';
+import { initMap, renderMap } from './map.js';
 import { loadAllData } from './data.js';
-import { setupUI, updateStats, renderLayersList } from '../ui.js';
-import { STATE } from '../state.js';
+import { setupUI, updateStats, renderLayersList } from './ui.js';
+import { STATE } from './state.js';
 
 function setupMobileLayersToggle() {
   const sidebar = document.getElementById('sidebar');

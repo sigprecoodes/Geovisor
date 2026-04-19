@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { CONFIG } from '../config.js';
 
 export function fetchSheetData() {
   return new Promise((resolve) => {
@@ -30,3 +30,8 @@ export function buildAppUrl({ page, microrruta, cuadrilla, lote }) {
   url.searchParams.set('lote', lote || '');
   return url.toString();
 }
+
+
+
+
+

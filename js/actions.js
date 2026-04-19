@@ -9,3 +9,8 @@ export function abrirReporteNovedad({ microrruta, cuadrilla, lote }) {
   const url = buildAppUrl({ page: 'reporte', microrruta, cuadrilla, lote });
   window.open(url, '_blank', 'noopener,noreferrer');
 }
+
+
+
+
+
