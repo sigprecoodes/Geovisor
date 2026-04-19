@@ -1,6 +1,6 @@
-import { STATE } from './state.js';
-import { fetchSheetData } from './api.js';
-import { normalizeText, inferCuadrillaFromPath, extractQuadrillaNumber } from './utils.js';
+import { STATE } from '../state.js';
+import { fetchSheetData } from '../api.js';
+import { normalizeText, inferCuadrillaFromPath, extractQuadrillaNumber } from '../utils.js';
 
 function normalizarBoolean(value) {
   return (
