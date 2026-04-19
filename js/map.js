@@ -1,6 +1,6 @@
-import { STATE } from './state.js';
-import { getStyle, matchesStateFilter, matchesSearchTerm } from './utils.js';
-import { createPopup, renderInfoPanel } from './ui.js';
+import { STATE } from '../state.js';
+import { getStyle, matchesStateFilter, matchesSearchTerm } from '../utils.js';
+import { createPopup, renderInfoPanel } from '../ui.js';
 
 export function initMap() {
   STATE.map = L.map('map').setView([6.2, -75.57], 12);
