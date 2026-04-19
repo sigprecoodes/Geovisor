@@ -1,4 +1,4 @@
-import { buildAppUrl } from './api.js';
+import { buildAppUrl } from '../api.js';
 
 export function abrirGestion({ microrruta, cuadrilla, lote }) {
   const url = buildAppUrl({ page: 'gestion', microrruta, cuadrilla, lote });
