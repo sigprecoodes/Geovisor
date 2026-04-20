@@ -5,6 +5,15 @@ function valorSeguro(value) {
   return String(value);
 }
 
+function escapeHtml(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function formatDateOnly(value) {
   if (!value) return '';
   const str = String(value).trim();
@@ -17,16 +26,8 @@ function formatDateOnly(value) {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-}
 
-function escapeHtml(text) {
-  return String(text ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+  return `${day}/${month}/${year}`;
 }
 
 function buildContextUrl({ microrruta, cuadrilla, lote }) {
@@ -97,6 +98,30 @@ function fetchMicrorrutaContext({ microrruta, cuadrilla, lote }) {
   });
 }
 
+function findNovedadActiva(detalle) {
+  const registro = detalle?.registro || {};
+  const novedades = Array.isArray(detalle?.novedades) ? detalle.novedades : [];
+
+  const activaDesdeRegistro =
+    registro?.novedad_activa && typeof registro.novedad_activa === 'object'
+      ? registro.novedad_activa
+      : null;
+
+  if (activaDesdeRegistro) return activaDesdeRegistro;
+
+  const activaDesdeLista = novedades.find((n) => {
+    const estado = String(
+      n?.estado_novedad ||
+      n?.estado ||
+      ''
+    ).trim().toUpperCase();
+
+    return estado === 'REPORTADA' || estado === 'SUBSANADA';
+  });
+
+  return activaDesdeLista || null;
+}
+
 function renderResumenBasico(detalle) {
   const registro = detalle?.registro || {};
 
@@ -136,21 +161,7 @@ function renderResumenBasico(detalle) {
 }
 
 function renderNovedadActiva(detalle) {
-  const registro = detalle?.registro || {};
-  const novedades = Array.isArray(detalle?.novedades) ? detalle.novedades : [];
-
-  const activaDesdeRegistro =
-    registro?.novedad_activa && typeof registro.novedad_activa === 'object'
-      ? registro.novedad_activa
-      : null;
-
-  const activaDesdeLista =
-    novedades.find((n) => {
-      const estado = String(n?.estado_novedad || '').trim().toUpperCase();
-      return estado === 'REPORTADA' || estado === 'SUBSANADA';
-    }) || null;
-
-  const activa = activaDesdeRegistro || activaDesdeLista;
+  const activa = findNovedadActiva(detalle);
 
   if (!activa) {
     return `
@@ -166,33 +177,53 @@ function renderNovedadActiva(detalle) {
   return `
     <div class="detail-grid">
       <div class="detail-item full-width detail-alert">
-        <span class="detail-label">Novedad activa reportada</span>
-        <span class="detail-value">${escapeHtml(valorSeguro(activa.tipo_novedad || 'Sin tipo'))}</span>
+        <span class="detail-label">Tipo de novedad activa</span>
+        <span class="detail-value">${escapeHtml(valorSeguro(
+          activa.tipo_novedad ||
+          activa.tipo_novedad_ejecucion ||
+          'Sin tipo'
+        ))}</span>
       </div>
 
       <div class="detail-item">
         <span class="detail-label">Estado novedad</span>
-        <span class="detail-value">${escapeHtml(valorSeguro(activa.estado_novedad || 'REPORTADA'))}</span>
+        <span class="detail-value">${escapeHtml(valorSeguro(
+          activa.estado_novedad ||
+          activa.estado ||
+          'REPORTADA'
+        ))}</span>
       </div>
 
       <div class="detail-item">
         <span class="detail-label">Fecha reporte</span>
-        <span class="detail-value">${escapeHtml(valorSeguro(formatDateOnly(activa.fecha_reporte_novedad)))}</span>
+        <span class="detail-value">${escapeHtml(valorSeguro(formatDateOnly(
+          activa.fecha_reporte_novedad ||
+          activa.fecha_reporte
+        )))}</span>
       </div>
 
       <div class="detail-item">
         <span class="detail-label">Inicio subsanación</span>
-        <span class="detail-value">${escapeHtml(valorSeguro(formatDateOnly(activa.fecha_inicio_subsanacion)))}</span>
+        <span class="detail-value">${escapeHtml(valorSeguro(formatDateOnly(
+          activa.fecha_inicio_subsanacion ||
+          activa.fecha_inicio
+        )))}</span>
       </div>
 
       <div class="detail-item">
         <span class="detail-label">Fin subsanación</span>
-        <span class="detail-value">${escapeHtml(valorSeguro(formatDateOnly(activa.fecha_fin_subsanacion)))}</span>
+        <span class="detail-value">${escapeHtml(valorSeguro(formatDateOnly(
+          activa.fecha_fin_subsanacion ||
+          activa.fecha_fin
+        )))}</span>
       </div>
 
-      <div class="detail-item">
+      <div class="detail-item full-width">
         <span class="detail-label">Observación</span>
-        <span class="detail-value">${escapeHtml(valorSeguro(activa.observacion_novedad))}</span>
+        <span class="detail-value">${escapeHtml(valorSeguro(
+          activa.observacion_novedad ||
+          activa.observacion
+        ))}</span>
       </div>
     </div>
   `;
@@ -212,29 +243,20 @@ function renderHistorialNovedades(detalle) {
     `;
   }
 
-  const items = novedades
-    .map((n) => {
-      return `
-        <div class="history-card">
-          <div class="history-row"><strong>Tipo:</strong> ${escapeHtml(valorSeguro(n.tipo_novedad))}</div>
-          <div class="history-row"><strong>Estado:</strong> ${escapeHtml(valorSeguro(n.estado_novedad))}</div>
-          <div class="history-row"><strong>Fecha reporte:</strong> ${escapeHtml(valorSeguro(formatDateOnly(n.fecha_reporte_novedad)))}</div>
-          <div class="history-row"><strong>Inicio subsanación:</strong> ${escapeHtml(valorSeguro(formatDateOnly(n.fecha_inicio_subsanacion)))}</div>
-          <div class="history-row"><strong>Fin subsanación:</strong> ${escapeHtml(valorSeguro(formatDateOnly(n.fecha_fin_subsanacion)))}</div>
-          <div class="history-row"><strong>Observación:</strong> ${escapeHtml(valorSeguro(n.observacion_novedad))}</div>
-        </div>
-      `;
-    })
-    .join('');
-
-  return `
-    <div class="detail-grid">
-      <div class="detail-item full-width">
-        <span class="detail-label">Historial de novedades</span>
-        <div class="history-list">${items}</div>
-      </div>
+  const html = novedades.map((n) => `
+    <div class="detail-item full-width">
+      <span class="detail-label">${escapeHtml(valorSeguro(n.tipo_novedad || n.tipo_novedad_ejecucion || 'Sin tipo'))}</span>
+      <span class="detail-value">
+        Estado: ${escapeHtml(valorSeguro(n.estado_novedad || n.estado || 'No disponible'))}<br>
+        Fecha reporte: ${escapeHtml(valorSeguro(formatDateOnly(n.fecha_reporte_novedad || n.fecha_reporte)))}<br>
+        Inicio: ${escapeHtml(valorSeguro(formatDateOnly(n.fecha_inicio_subsanacion || n.fecha_inicio)))}<br>
+        Fin: ${escapeHtml(valorSeguro(formatDateOnly(n.fecha_fin_subsanacion || n.fecha_fin)))}<br>
+        Observación: ${escapeHtml(valorSeguro(n.observacion_novedad || n.observacion))}
+      </span>
     </div>
-  `;
+  `).join('');
+
+  return `<div class="detail-grid">${html}</div>`;
 }
 
 function renderDetalleCompleto(detalle) {
@@ -289,8 +311,7 @@ export function bindInfoPanel({
 
     try {
       const detalle = await fetchMicrorrutaContext({ microrruta, cuadrilla, lote });
-
-      console.log('DETALLE GITHUB:', detalle);
+      console.log('DETALLE CONTEXTO:', detalle);
 
       if (!detalle) {
         panelContent.innerHTML = `
@@ -314,8 +335,8 @@ export function bindInfoPanel({
 
   closeBtn?.addEventListener('click', close);
 
-  if (map) {
-    map.on?.('click', () => {});
+  if (map && typeof map.on === 'function') {
+    map.on('popupclose', () => {});
   }
 
   return {
